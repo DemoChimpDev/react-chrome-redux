@@ -7,7 +7,7 @@ import {
   STATE_TYPE,
   PATCH_STATE_TYPE,
   DIFF_STATUS_UPDATED,
-  DIFF_STATUS_REMOVED,
+  DIFF_STATUS_REMOVED, DEFAULT_SELECTOR,
 } from '../constants';
 import { withSerializer, withDeserializer, noop } from "../serialization";
 
@@ -19,9 +19,9 @@ export const applyMiddleware = applyMiddlewareFn;
 class Store {
   /**
    * Creates a new Proxy store
-   * @param  {object} options An object of form {portName, state, extensionId, serializer, deserializer}, where `portName` is a required string and defines the name of the port for state transition changes, `state` is the initial state of this store (default `{}`) `extensionId` is the extension id as defined by chrome when extension is loaded (default `''`), `serializer` is a function to serialize outgoing message payloads (default is passthrough), and `deserializer` is a function to deserialize incoming message payloads (default is passthrough)
+   * @param  {object} options An object of form {portName, state, extensionId, serializer, deserializer}, where `portName` is a required string and defines the name of the port for state transition changes, `state` is the initial state of this store (default `{}`) `extensionId` is the extension id as defined by chrome when extension is loaded (default `''`), `serializer` is a function to serialize outgoing message payloads (default is passthrough), and `deserializer` is a function to deserialize incoming message payloads (default is passthrough). Key is optional parameter to specify if we need to watch to specific selector only from wrapStoreSelectors
    */
-  constructor({portName, state = {}, extensionId = null, serializer = noop, deserializer = noop}) {
+  constructor({portName, state = {}, extensionId = null, serializer = noop, deserializer = noop, key = DEFAULT_SELECTOR}) {
     if (!portName) {
       throw new Error('portName is required in options');
     }
@@ -32,6 +32,7 @@ class Store {
       throw new Error('deserializer must be a function');
     }
 
+    this.key = key;
     this.portName = portName;
     this.readyResolved = false;
     this.readyPromise = new Promise(resolve => this.readyResolve = resolve);
@@ -47,16 +48,20 @@ class Store {
     this.serializedPortListener(message => {
       switch (message.type) {
         case STATE_TYPE:
-          this.replaceState(message.payload);
+          if(message.key === this.key) {
+            this.replaceState(message.payload);
 
-          if (!this.readyResolved) {
-            this.readyResolved = true;
-            this.readyResolve();
+            if (!this.readyResolved) {
+              this.readyResolved = true;
+              this.readyResolve();
+            }
           }
           break;
 
         case PATCH_STATE_TYPE:
-          this.patchState(message.payload);
+          if(message.key === this.key) {
+            this.patchState(message.payload);
+          }
           break;
 
         default:

@@ -8,7 +8,7 @@ import {
   DISPATCH_TYPE,
   STATE_TYPE,
   DIFF_STATUS_UPDATED,
-  DIFF_STATUS_REMOVED,
+  DIFF_STATUS_REMOVED, DEFAULT_SELECTOR,
 } from '../src/constants';
 
 describe('Store', function () {
@@ -74,6 +74,7 @@ describe('Store', function () {
       // send one state type message
       l({
         type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
         payload
       });
 
@@ -106,6 +107,7 @@ describe('Store', function () {
       // send one state type message
       l({
         type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
         payload: JSON.stringify(payload)
       });
 
@@ -168,6 +170,7 @@ describe('Store', function () {
       // send one state type message, this should trigger the ready callback
       l({
         type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
         payload: {}
       });
 
@@ -184,10 +187,21 @@ describe('Store', function () {
       // callback
       l(badMessage);
 
+      const messageWithOtherKey = {
+        type: STATE_TYPE,
+        key: `NOT_${DEFAULT_SELECTOR}`,
+        payload: {}
+      };
+
+      // send one other key message, this should not trigger the ready
+      // callback
+      l(messageWithOtherKey);
+
       // send one state type message, this should not trigger the callback
       // since the store should have already been marked ready
       l({
         type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
         payload: {}
       });
 

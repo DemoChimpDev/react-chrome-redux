@@ -5,7 +5,7 @@ import should from 'should';
 
 import {wrapStore} from '../src';
 import shallowDiff from "../src/wrap-store/shallowDiff";
-import {DISPATCH_TYPE, STATE_TYPE, PATCH_STATE_TYPE} from '../src/constants';
+import {DISPATCH_TYPE, STATE_TYPE, PATCH_STATE_TYPE, DEFAULT_SELECTOR} from '../src/constants';
 
 describe('wrapStore', function () {
   const portName = 'test';
@@ -172,10 +172,12 @@ describe('wrapStore', function () {
 
     const expectedSetupMessage = {
       type: STATE_TYPE,
+      key: DEFAULT_SELECTOR,
       payload: serializer(firstState)
     };
     const expectedPatchMessage = {
       type: PATCH_STATE_TYPE,
+      key: DEFAULT_SELECTOR,
       payload: serializer(shallowDiff(firstState, secondState))
     };
 

@@ -1,13 +1,12 @@
 # React Chrome Redux
 A set of utilities for building Redux applications in Google Chrome extensions. Although [React](https://facebook.github.io/react/) is mentioned in the package name, this package's only requirement is Redux. Feel free to use this with [AngularJS](https://angularjs.org/) and other libraries.
 
-[![Build Status](https://travis-ci.org/tshaddix/react-chrome-redux.svg?branch=master)](https://travis-ci.org/tshaddix/react-chrome-redux)
 [![NPM Version][npm-image]][npm-url]
 [![NPM Downloads][downloads-image]][downloads-url]
 
 ## Installation
 
-This package is available on [npm](https://www.npmjs.com/package/react-chrome-redux):
+This package is available on [npm](https://www.npmjs.com/package/react-chrome-redux-with-partials):
 
 ```
 npm install react-chrome-redux
@@ -15,7 +14,9 @@ npm install react-chrome-redux
 
 ## Overview
 
-`react-chrome-redux` allows you to build your Chrome extension like a Redux-powered webapp. The background page holds the Redux store, while Popovers and Content-Scripts act as UI Components, passing actions and state updates between themselves and the background store. At the end of the day, you have a single source of truth (your Redux store) that describes the entire state of your extension.
+`react-chrome-redux-with-partials` allows you to build your Chrome extension like a Redux-powered webapp. The background page holds the Redux store, while Popovers and Content-Scripts act as UI Components, passing actions and state updates between themselves and the background store. At the end of the day, you have a single source of truth (your Redux store) that describes the entire state of your extension.
+
+Difference to `react-chrome-redux` is that it allows to select subset of store to sync if you don't need all data from background in your child windows.
 
 All UI Components follow the same basic flow:
 
@@ -58,6 +59,35 @@ store.ready().then(() => {
 });
 ```
 
+### Advanced. Add the *Proxy Store* to a UI Component, which would receive only custom selected data
+
+```js
+// popover.js
+
+import React from 'react';
+import {render} from 'react-dom';
+import {Provider} from 'react-redux';
+import {Store} from 'react-chrome-redux';
+
+import App from './components/app/App';
+
+const partialStore = new Store({
+  portName: 'MY_APP', // communication port name
+  key: 'firstPartOfState' // This should match keys used in `wrapStoreSelectors`
+});
+
+// wait for the store to connect to the background page
+store.ready().then(() => {
+  // The store implements the same interface as Redux's store
+  // so you can use tools like `react-redux` no problem!
+  render(
+    <Provider store={partialStore}>
+      <App/>
+    </Provider>
+    , document.getElementById('app'));
+});
+```
+
 ### 2. Wrap your Redux store in the background page with `wrapStore()`
 
 ```js
@@ -71,6 +101,23 @@ wrapStore(store, {portName: 'MY_APP'}); // make sure portName matches
 ```
 
 That's it! The dispatches called from UI component will find their way to the background page no problem. The new state from your background page will make sure to find its way back to the UI components.
+
+### Advanced. Wrap your Redux store selectors instead of whole store `wrapStoreSelectors()`
+
+```js
+// background.js
+
+import {wrapStoreSelectors} from 'react-chrome-redux';
+
+const store; // a normal Redux store
+
+wrapStoreSelectors(store, {
+    firstPartOfState: (state)=>{a: state.a, b: state.b},
+    secondPartOfState: (state)=>{b: state.b, c: state.c},
+}, {portName: 'MY_APP'}); // make sure portName matches
+```
+
+This will dispatch messages with only subset of data changed in selectors used. While wrapStoreSelectors already fires changes only when data changes, consider using `reselect` memoized selectors for complex data subsets
 
 ### 3. Optional: Implement actions whose logic only happens in the background script (we call them aliases)
 
@@ -249,24 +296,8 @@ JSON.parse(stringified, dateReviver)
   * [wrapStore](https://github.com/tshaddix/react-chrome-redux/wiki/wrapStore)
   * [alias](https://github.com/tshaddix/react-chrome-redux/wiki/alias)
 
-## Who's using this?
-
-[![Loom][loom-image]][loom-url]
-
-[![GoGuardian][goguardian-image]][goguardian-url]
-
-[![Chrome IG Story][chrome-ig-story-image]][chrome-ig-story-url]
-
-Using `react-chrome-redux` in your project? We'd love to hear about it! Just [open an issue](https://github.com/tshaddix/react-chrome-redux/issues) and let us know.
-
 
 [npm-image]: https://img.shields.io/npm/v/react-chrome-redux.svg
-[npm-url]: https://npmjs.org/package/react-chrome-redux
+[npm-url]: https://npmjs.org/package/react-chrome-redux-with-partials
 [downloads-image]: https://img.shields.io/npm/dm/react-chrome-redux.svg
-[downloads-url]: https://npmjs.org/package/react-chrome-redux
-[loom-image]: https://cloud.githubusercontent.com/assets/603426/22037715/28c653aa-dcad-11e6-814d-d7a418d5670f.png
-[loom-url]: https://www.useloom.com
-[goguardian-image]: https://cloud.githubusercontent.com/assets/2173532/17540959/c6749bdc-5e6f-11e6-979c-c0e0da51fc63.png
-[goguardian-url]: https://goguardian.com
-[chrome-ig-story-image]: https://user-images.githubusercontent.com/2003684/34464412-895af814-ee32-11e7-86e4-b602bf58cdbc.png
-[chrome-ig-story-url]: https://chrome.google.com/webstore/detail/chrome-ig-story/bojgejgifofondahckoaahkilneffhmf
+[downloads-url]: https://npmjs.org/package/react-chrome-redux-with-partials

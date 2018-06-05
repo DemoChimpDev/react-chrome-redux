@@ -16,9 +16,8 @@ const deserializeListener = (listener, deserializer = noop, shouldDeserialize) =
     return (message, ...args) => {
       if (shouldDeserialize(message, ...args)) {
         return listener(transformPayload(message, deserializer), ...args);
-      } else {
-        return listener(message, ...args);
       }
+      return listener(message, ...args);
     };
   }
   // Otherwise, return a function that tries to deserialize on every message
@@ -62,9 +61,9 @@ const deserializeListener = (listener, deserializer = noop, shouldDeserialize) =
  *   //Payload: "{'prop':4}";
  */
 export const withDeserializer = (deserializer = noop) =>
-  (addListenerFn) =>
-    (listener, shouldDeserialize) =>
-      addListenerFn(deserializeListener(listener, deserializer, shouldDeserialize));
+    (addListenerFn) =>
+        (listener, shouldDeserialize) =>
+            addListenerFn(deserializeListener(listener, deserializer, shouldDeserialize));
 
 /**
  * Given a serializer, returns a function that takes a message sending
@@ -81,13 +80,13 @@ export const withDeserializer = (deserializer = noop) =>
  *   //Payload: "{'prop':4}"
  */
 export const withSerializer = (serializer = noop) =>
-  (sendMessageFn, messageArgIndex = 0) => {
-    return (...args) => {
-      if (args.length <= messageArgIndex) {
-        throw new Error(`Message in request could not be serialized. ` +
-                        `Expected message in position ${messageArgIndex} but only received ${args.length} args.`);
-      }
-      args[messageArgIndex] = transformPayload(args[messageArgIndex], serializer);
-      return sendMessageFn(...args);
+    (sendMessageFn, messageArgIndex = 0) => {
+      return (...args) => {
+        if (args.length <= messageArgIndex) {
+          throw new Error(`Message in request could not be serialized. ` +
+              `Expected message in position ${messageArgIndex} but only received ${args.length} args.`);
+        }
+        args[messageArgIndex] = transformPayload(args[messageArgIndex], serializer);
+        return sendMessageFn(...args);
+      };
     };
-  };

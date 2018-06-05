@@ -10,7 +10,8 @@ export class Store<S = any, A extends redux.Action = redux.Action> {
     state?: any,
     extensionId?: string,
     serializer?: Function,
-    deserializer?: Function
+    deserializer?: Function,
+    key?: string,
   });
 
   /**
@@ -71,6 +72,17 @@ export class Store<S = any, A extends redux.Action = redux.Action> {
 
 export function wrapStore<S>(
   store: redux.Store<S>,
+  configuration: {
+    portName: string,
+    dispatchResponder?(dispatchResult: any, send: (response: any) => void): void,
+    serializer?: Function,
+    deserializer?: Function
+  },
+): void;
+
+export function wrapStoreSelectors<S>(
+  store: redux.Store<S>,
+  selectors: {[key: string]: (S) => any},
   configuration: {
     portName: string,
     dispatchResponder?(dispatchResult: any, send: (response: any) => void): void,

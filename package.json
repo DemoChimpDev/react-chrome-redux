@@ -1,7 +1,7 @@
 {
-  "name": "react-chrome-redux",
-  "version": "2.0.0-alpha.1",
-  "description": "A set of utilities for building Redux applications in Google Chrome Extensions.",
+  "name": "react-chrome-redux-with-partials",
+  "version": "3.0.0-alpha.1",
+  "description": "Support for building Redux applications in Google Chrome Extensions with syncing only subsets of store.",
   "main": "lib/index.js",
   "typings": "./index.d.ts",
   "scripts": {
@@ -16,14 +16,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tshaddix/react-chrome-redux.git"
+    "url": "git+https://github.com/DemoChimpDev/react-chrome-redux-with-partials.git"
   },
-  "author": "Tyler Shaddix",
+  "contributors": [
+    {
+      "name": "Andrew Kirkovski",
+      "email": "ryotsuke@gmail.com"
+    },
+    {
+      "name": "Tyler Shaddix"
+    }
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tshaddix/react-chrome-redux/issues"
+    "url": "https://github.com/DemoChimpDev/react-chrome-redux-with-partials/issues"
   },
-  "homepage": "https://github.com/tshaddix/react-chrome-redux#readme",
+  "homepage": "https://github.com/DemoChimpDev/react-chrome-redux-with-partials#readme",
   "dependencies": {
     "lodash": "^4.5.1",
     "redux": "^3.7.2"
