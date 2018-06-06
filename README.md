@@ -1,5 +1,7 @@
-# React Chrome Redux
+# React Chrome Redux With Selectors Support
 A set of utilities for building Redux applications in Google Chrome extensions. Although [React](https://facebook.github.io/react/) is mentioned in the package name, this package's only requirement is Redux. Feel free to use this with [AngularJS](https://angularjs.org/) and other libraries.
+
+This is a fork of `react-chrome-redux` that allows to select subset of store to sync if you don't need all data from background in your child windows.
 
 [![NPM Version][npm-image]][npm-url]
 [![NPM Downloads][downloads-image]][downloads-url]
@@ -9,14 +11,12 @@ A set of utilities for building Redux applications in Google Chrome extensions. 
 This package is available on [npm](https://www.npmjs.com/package/react-chrome-redux-with-partials):
 
 ```
-npm install react-chrome-redux
+npm install react-chrome-redux-with-partials
 ```
 
 ## Overview
 
 `react-chrome-redux-with-partials` allows you to build your Chrome extension like a Redux-powered webapp. The background page holds the Redux store, while Popovers and Content-Scripts act as UI Components, passing actions and state updates between themselves and the background store. At the end of the day, you have a single source of truth (your Redux store) that describes the entire state of your extension.
-
-Difference to `react-chrome-redux` is that it allows to select subset of store to sync if you don't need all data from background in your child windows.
 
 All UI Components follow the same basic flow:
 
@@ -297,7 +297,7 @@ JSON.parse(stringified, dateReviver)
   * [alias](https://github.com/tshaddix/react-chrome-redux/wiki/alias)
 
 
-[npm-image]: https://img.shields.io/npm/v/react-chrome-redux.svg
+[npm-image]: https://img.shields.io/npm/v/react-chrome-redux-with-partials.svg
 [npm-url]: https://npmjs.org/package/react-chrome-redux-with-partials
-[downloads-image]: https://img.shields.io/npm/dm/react-chrome-redux.svg
+[downloads-image]: https://img.shields.io/npm/dm/react-chrome-redux-with-partials.svg
 [downloads-url]: https://npmjs.org/package/react-chrome-redux-with-partials
