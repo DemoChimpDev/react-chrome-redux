@@ -1,27 +1,38 @@
 import assignIn from 'lodash/assignIn';
 
-import { default as applyMiddlewareFn } from './applyMiddleware';
+import {default as applyMiddlewareFn} from './applyMiddleware';
 
 import {
-  DISPATCH_TYPE,
-  STATE_TYPE,
-  PATCH_STATE_TYPE,
+  DEFAULT_SELECTOR,
+  DIFF_STATUS_REMOVED,
   DIFF_STATUS_UPDATED,
-  DIFF_STATUS_REMOVED, DEFAULT_SELECTOR,
+  DISPATCH_TYPE,
+  PATCH_STATE_TYPE,
+  STATE_TYPE,
 } from '../constants';
-import { withSerializer, withDeserializer, noop } from "../serialization";
+import {noop, withDeserializer, withSerializer} from "../serialization";
 
 const backgroundErrPrefix = '\nLooks like there is an error in the background page. ' +
-  'You might want to inspect your background page for more details.\n';
+    'You might want to inspect your background page for more details.\n';
 
 export const applyMiddleware = applyMiddlewareFn;
 
 class Store {
   /**
    * Creates a new Proxy store
-   * @param  {object} options An object of form {portName, state, extensionId, serializer, deserializer}, where `portName` is a required string and defines the name of the port for state transition changes, `state` is the initial state of this store (default `{}`) `extensionId` is the extension id as defined by chrome when extension is loaded (default `''`), `serializer` is a function to serialize outgoing message payloads (default is passthrough), and `deserializer` is a function to deserialize incoming message payloads (default is passthrough). Key is optional parameter to specify if we need to watch to specific selector only from wrapStoreSelectors
+   * @param  is a , `state`  (default `{}`) `extensionId`  , `serializer` is , and `deserializer` . Key is
    */
-  constructor({portName, state = {}, extensionId = null, serializer = noop, deserializer = noop, key = DEFAULT_SELECTOR}) {
+
+  /**
+   * @param {string} portName required string and defines the name of the port for state transition changes
+   * @param state is the initial state of this store
+   * @param extensionId is the extension id as defined by chrome when extension is loaded (default `''`)
+   * @param serializer a function to serialize outgoing message payloads (default is passthrough)
+   * @param deserializer is a function to deserialize incoming message payloads (default is passthrough)
+   * @param key optional parameter to specify if we need to watch to specific selector only from wrapStoreSelectors
+   * @param {boolean} acceptOnce if true, created 'dead' store that accepts initial data and never listens anymore
+   */
+  constructor({portName, state = {}, extensionId = null, serializer = noop, deserializer = noop, key = DEFAULT_SELECTOR, acceptOnce = false}) {
     if (!portName) {
       throw new Error('portName is required in options');
     }
@@ -32,6 +43,7 @@ class Store {
       throw new Error('deserializer must be a function');
     }
 
+    this.acceptOnce = acceptOnce;
     this.key = key;
     this.portName = portName;
     this.readyResolved = false;
@@ -39,27 +51,39 @@ class Store {
 
     this.extensionId = extensionId; // keep the extensionId as an instance variable
     this.port = chrome.runtime.connect(this.extensionId, {name: portName});
-    this.serializedPortListener = withDeserializer(deserializer)((...args) => this.port.onMessage.addListener(...args));
+    this.serializedPortListenerActive = false;
+    this.serializedPortListener = withDeserializer(deserializer)((...args) => {
+      this.serializedPortListenerActive = true;
+      this.serializedPortListenerNative = args[0];
+      return this.port.onMessage.addListener(...args);
+    });
     this.serializedMessageSender = withSerializer(serializer)((...args) => chrome.runtime.sendMessage(...args), 1);
     this.listeners = [];
     this.state = state;
 
     // Don't use shouldDeserialize here, since no one else should be using this port
     this.serializedPortListener(message => {
+      if (!this.serializedPortListenerActive) {
+        return;
+      }
       switch (message.type) {
         case STATE_TYPE:
-          if(message.key === this.key) {
+          if (message.key === this.key) {
             this.replaceState(message.payload);
 
             if (!this.readyResolved) {
               this.readyResolved = true;
               this.readyResolve();
             }
+
+            if(this.acceptOnce) {
+              this.freeze();
+            }
           }
           break;
 
         case PATCH_STATE_TYPE:
-          if(message.key === this.key) {
+          if (message.key === this.key && !this.acceptOnce) {
             this.patchState(message.payload);
           }
           break;
@@ -73,10 +97,10 @@ class Store {
   }
 
   /**
-  * Returns a promise that resolves when the store is ready. Optionally a callback may be passed in instead.
-  * @param [function] callback An optional callback that may be passed in and will fire when the store is ready.
-  * @return {object} promise A promise that resolves when the store has established a connection with the background page.
-  */
+   * Returns a promise that resolves when the store is ready. Optionally a callback may be passed in instead.
+   * @param [function] callback An optional callback that may be passed in and will fire when the store is ready.
+   * @return {object} promise A promise that resolves when the store has established a connection with the background page.
+   */
   ready(cb = null) {
     if (cb !== null) {
       return this.readyPromise.then(cb);
@@ -151,6 +175,32 @@ class Store {
   }
 
   /**
+   * Kills store so it stops accepting dispatches and listening to events
+   * Warning: non-revertable
+   */
+  destroy() {
+    this.freeze();
+    this.listeners = [];
+    this.dispatch = () => void 0;
+  }
+
+  /**
+   * Stops listening for external store changes. Calling patch and replace manually will still trigger listeners
+   * Warning: non-revertable
+   */
+  freeze() {
+    if(this.serializedPortListenerActive) {
+      // Note removing listener is undocumented and may be removed, so additionally we disable listener with flag
+      this.serializedPortListenerActive = false;
+      try {
+        this.port.onMessage.removeListener(this.serializedPortListenerNative);
+      } catch (e) {
+        console.warn('Could not remove listener');
+      }
+    }
+  }
+
+  /**
    * Dispatch an action to the background using messaging passing
    * @param  {object} data The action data to dispatch
    * @return {Promise}     Promise that will resolve/reject based on the action response from the background
@@ -158,7 +208,7 @@ class Store {
   dispatch(data) {
     return new Promise((resolve, reject) => {
       this.serializedMessageSender(
-        this.extensionId,
+          this.extensionId,
         {
           type: DISPATCH_TYPE,
           portName: this.portName,

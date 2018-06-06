@@ -3,13 +3,8 @@ import 'babel-polyfill';
 import should from 'should';
 import sinon from 'sinon';
 
-import { Store } from '../src';
-import {
-  DISPATCH_TYPE,
-  STATE_TYPE,
-  DIFF_STATUS_UPDATED,
-  DIFF_STATUS_REMOVED, DEFAULT_SELECTOR,
-} from '../src/constants';
+import {Store} from '../src';
+import {DEFAULT_SELECTOR, DIFF_STATUS_REMOVED, DIFF_STATUS_UPDATED, DISPATCH_TYPE, STATE_TYPE,} from '../src/constants';
 
 describe('Store', function () {
   const portName = 'test';
@@ -65,7 +60,7 @@ describe('Store', function () {
       // make replaceState() a spy function
       store.replaceState = sinon.spy();
 
-      const [ l ] = listeners;
+      const [l] = listeners;
 
       const payload = {
         a: 1
@@ -98,7 +93,7 @@ describe('Store', function () {
       // make replaceState() a spy function
       store.replaceState = sinon.spy();
 
-      const [ l ] = listeners;
+      const [l] = listeners;
 
       const payload = {
         a: 1
@@ -165,7 +160,7 @@ describe('Store', function () {
       // verify Store.ready has not been called yet
       readyCb.callCount.should.equal(0);
 
-      const [ l ] = listeners;
+      const [l] = listeners;
 
       // send one state type message, this should trigger the ready callback
       l({
@@ -210,18 +205,240 @@ describe('Store', function () {
     });
   });
 
+  describe('#freeze()', function () {
+    it('should stop calling Store listeners once freezed', async function () {
+      // mock connect.onMessage listeners array
+      const listeners = [];
+      const listenerCb = sinon.spy();
+
+      // override mock chrome API for this test
+      global.chrome.runtime.connect = () => {
+        return {
+          onMessage: {
+            addListener(listener) {
+              listeners.push(listener);
+            },
+            removeListener() {
+              listeners.pop();
+            }
+          }
+        };
+      };
+
+      const store = new Store({portName}),
+            readyCb = sinon.spy(),
+            readyPromise = store.ready().then(() => {
+              readyCb();
+              return Promise.resolve();
+            });
+
+      store.subscribe(listenerCb);
+
+      // verify one listener was added on port connect
+      listeners.length.should.equal(1);
+
+      // verify Store.ready has not been called yet
+      readyCb.callCount.should.equal(0);
+
+      // verify Store.listener has not been called yet
+      listenerCb.callCount.should.equal(0);
+
+      const [l] = listeners;
+
+      // send one state type message, this should trigger the ready callback
+      l({
+        type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
+        payload: {}
+      });
+
+      // the Store.ready method is backed by a promise (inherent async
+      // behavior), so we must wait
+      await readyPromise;
+
+      // Listener should be invoked once by now
+      listenerCb.callCount.should.equal(1);
+
+      // send one state type message
+      l({
+        type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
+        payload: {}
+      });
+
+      // Listener should be invoked twice by now
+      listenerCb.callCount.should.equal(2);
+
+      // Now freeze the store
+      store.freeze();
+
+      // send one state type message
+      l({
+        type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
+        payload: {}
+      });
+
+      // Listener should be still invoked twice only
+      listenerCb.callCount.should.equal(2);
+
+      // make sure replace state was only called once
+      readyCb.calledOnce.should.equal(true);
+    });
+  });
+
+
+  describe('#acceptOnce()', function () {
+    it('should not accept more then one message if acceptOnce enabled', async function () {
+      // mock connect.onMessage listeners array
+      const listeners = [];
+      const listenerCb = sinon.spy();
+
+      // override mock chrome API for this test
+      global.chrome.runtime.connect = () => {
+        return {
+          onMessage: {
+            addListener(listener) {
+              listeners.push(listener);
+            },
+            removeListener() {
+              listeners.pop();
+            }
+          }
+        };
+      };
+
+      const store = new Store({portName, acceptOnce: true}),
+            readyCb = sinon.spy(),
+            readyPromise = store.ready().then(() => {
+              readyCb();
+              return Promise.resolve();
+            });
+
+      store.subscribe(listenerCb);
+
+      // verify one listener was added on port connect
+      listeners.length.should.equal(1);
+
+      // verify Store.ready has not been called yet
+      readyCb.callCount.should.equal(0);
+
+      // verify Store.listener has not been called yet
+      listenerCb.callCount.should.equal(0);
+
+      const [l] = listeners;
+
+      // send one state type message, this should trigger the ready callback
+      l({
+        type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
+        payload: {}
+      });
+
+      // the Store.ready method is backed by a promise (inherent async
+      // behavior), so we must wait
+      await readyPromise;
+
+      // Listener should be invoked once by now
+      listenerCb.callCount.should.equal(1);
+
+      // send one state type message
+      l({
+        type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
+        payload: {}
+      });
+
+      // Listener should be not invoked again
+      listenerCb.callCount.should.equal(1);
+
+      // make sure replace state was only called once
+      readyCb.calledOnce.should.equal(true);
+    });
+  });
+
+  describe('#key()', function () {
+    it('should not accept data with wrong keys', async function () {
+      // mock connect.onMessage listeners array
+      const listeners = [];
+      const listenerCb = sinon.spy();
+      const OTHER_KEY = 'OTHER_KEY';
+
+      // override mock chrome API for this test
+      global.chrome.runtime.connect = () => {
+        return {
+          onMessage: {
+            addListener(listener) {
+              listeners.push(listener);
+            },
+            removeListener() {
+              listeners.pop();
+            }
+          }
+        };
+      };
+
+      const store = new Store({portName, key: OTHER_KEY}),
+            readyCb = sinon.spy(),
+            readyPromise = store.ready().then(() => {
+              readyCb();
+              return Promise.resolve();
+            });
+
+      store.subscribe(listenerCb);
+
+      // verify one listener was added on port connect
+      listeners.length.should.equal(1);
+
+      // verify Store.ready has not been called yet
+      readyCb.callCount.should.equal(0);
+
+      // verify Store.listener has not been called yet
+      listenerCb.callCount.should.equal(0);
+
+      const [l] = listeners;
+
+      // send one state type message, this should trigger the ready callback
+      l({
+        type: STATE_TYPE,
+        key: OTHER_KEY,
+        payload: {}
+      });
+
+      // the Store.ready method is backed by a promise (inherent async
+      // behavior), so we must wait
+      await readyPromise;
+
+      // Listener should be invoked once by now
+      listenerCb.callCount.should.equal(1);
+
+      // send one state type message
+      l({
+        type: STATE_TYPE,
+        key: DEFAULT_SELECTOR,
+        payload: {}
+      });
+
+      // Listener should be not invoked again because key is not OTHER_KEY
+      listenerCb.callCount.should.equal(1);
+
+      // make sure replace state was only called once
+      readyCb.calledOnce.should.equal(true);
+    });
+  });
+
   describe('#patchState()', function () {
     it('should patch the state of the store', function () {
-      const store = new Store({ portName, state: { b: 1 } });
+      const store = new Store({portName, state: {b: 1}});
 
-      store.getState().should.eql({ b: 1 });
+      store.getState().should.eql({b: 1});
 
       store.patchState([
-        { key: 'a', value: 123, change: DIFF_STATUS_UPDATED },
-        { key: 'b', change: DIFF_STATUS_REMOVED },
+        {key: 'a', value: 123, change: DIFF_STATUS_UPDATED},
+        {key: 'b', change: DIFF_STATUS_REMOVED},
       ]);
 
-      store.getState().should.eql({ a: 123 });
+      store.getState().should.eql({a: 123});
     });
   });
 
