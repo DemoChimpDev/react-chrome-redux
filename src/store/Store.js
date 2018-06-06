@@ -94,6 +94,9 @@ class Store {
     });
 
     this.dispatch = this.dispatch.bind(this); // add this context to dispatch
+    this.destroy = this.destroy.bind(this); // add this context to destroy
+
+    this.port.onDisconnect.addListener(this.destroy);
   }
 
   /**
@@ -181,7 +184,7 @@ class Store {
   destroy() {
     this.freeze();
     this.listeners = [];
-    this.dispatch = () => void 0;
+    this.dispatch = () => new Error('Dispatching to destructed store is not possible');
   }
 
   /**

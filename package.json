@@ -1,6 +1,6 @@
 {
   "name": "react-chrome-redux-with-partials",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Support for building Redux applications in Google Chrome Extensions with syncing only subsets of store.",
   "main": "lib/index.js",
   "typings": "./index.d.ts",
